@@ -1,22 +1,52 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Auth from './pages/Auth';
-import HostAuth from './pages/HostAuth';
-import AdminLogin from './pages/Adminauth';
-import AdminDashboard from './pages/AdminDashboard';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-function App() {
+// Components
+import Header from './components/Header';
+
+// User Pages
+import Home from './pages/Home'; // Adjust if it exists in `src/pages/`
+import RestaurantList from './pages/user/RestaurantList';
+import RestaurantDetails from './pages/user/RestaurantDetails';
+import UserProfile from './pages/user/UserProfile';
+
+// Host Pages
+import HostAuth from './pages/host/HostAuth';
+import HostRegistration from './pages/host/HostRegistration';
+import HostDashboard from './pages/host/HostDashboard';
+
+// Admin Pages
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+
+// General Pages
+import Auth from './pages/Auth';
+
+export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/host-auth" element={<HostAuth />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="*" element={<Navigate to="/auth" replace />} />
-      </Routes>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Routes>
+          {/* General Routes */}
+          <Route path="/auth" element={<Auth />} />
+
+          {/* User Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/restaurants" element={<RestaurantList />} />
+          <Route path="/restaurant/:id" element={<RestaurantDetails />} />
+          <Route path="/profile" element={<UserProfile />} />
+
+          {/* Host Routes */}
+          <Route path="/host/auth" element={<HostAuth />} />
+          <Route path="/host/register" element={<HostRegistration />} />
+          <Route path="/host/dashboard" element={<HostDashboard />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        </Routes>
+      </div>
     </Router>
   );
 }
-
-export default App;
