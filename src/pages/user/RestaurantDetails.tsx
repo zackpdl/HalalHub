@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Clock, Phone, Heart, Star as StarIcon } from 'lucide-react';
-// src/pages/user/RestaurantDetails.tsx
-import Rating from "../../components/Rating";
-import Button from "../../components/Button";
-
+import Rating from '../../components/ui/Rating';
+import Button from '../../components/ui/Button';
 
 export default function RestaurantDetails() {
   const { id } = useParams();
