@@ -9,6 +9,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import RestaurantList from './pages/user/RestaurantList';
 import RestaurantDetails from './pages/user/RestaurantDetails';
 import UserProfile from './pages/user/UserProfile';
+import Menu from './pages/host/Menu.tsx'; // Import the new Menu component
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/host/login" element={<HostAuth />} />
         <Route path="/host/register" element={<HostRegistration />} />
         <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route path="/host/menu" element={<Menu />} /> {/* Add the route for Menu */}
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

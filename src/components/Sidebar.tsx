@@ -19,7 +19,7 @@ export default function Sidebar({ type }: SidebarProps) {
   const menuItems = type === 'host' ? [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/host/dashboard' },
     { icon: UtensilsCrossed, label: 'Menu', path: '/host/menu' },
-    { icon: FileText, label: 'Orders', path: '/host/orders' },
+   // { icon: FileText, label: 'Orders', path: '/host/orders' },
     { icon: Settings, label: 'Settings', path: '/host/settings' }
   ] : [
     { icon: LayoutDashboard, label: 'Overview', path: '/admin/dashboard' },

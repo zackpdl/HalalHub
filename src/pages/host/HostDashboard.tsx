@@ -44,19 +44,19 @@ export default function HostDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Orders</h2>
-            <div className="space-y-4">
-              {[1, 2, 3].map((order) => (
-                <div key={order} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Order #{order}234</p>
-                    <p className="text-sm text-gray-600">2 items • $24.99</p>
-                  </div>
-                  <span className="px-3 py-1 text-sm rounded-full bg-emerald-100 text-emerald-800">
-                    Completed
-                  </span>
-                </div>
-              ))}
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Map & Location</h2>
+            <div className="p-4 border rounded-lg">
+              <iframe
+                title="Example Map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.835434509555!2d144.95592801531895!3d-37.817209979751735!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad642af0f11fd81%3A0xf577d7f1222ecb0!2sFederation%20Square!5e0!3m2!1sen!2sau!4v1699196400000!5m2!1sen!2sau"
+                width="100%"
+                height="300"
+                style={{ border: 0 }}
+                
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+              <p className="text-gray-600 mt-4">Embed your restaurant's location here to help customers find you easily.</p>
             </div>
           </div>
 
