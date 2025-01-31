@@ -1,50 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { User, Heart, Star, Settings } from 'lucide-react';
 import Rating from '../../components/ui/Rating';
-import { supabase } from '../../lib/supabase';
-
-interface UserData {
-  full_name: string;
-  email: string;
-  created_at: string;
-}
 
 export default function UserProfile() {
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Mock data - replace with actual user data
+  const user = {
+    name: 'John Doe',
+    email: 'john@example.com',
+    joinDate: 'March 2024'
+  };
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // Get the current user's session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          throw new Error('No authenticated user');
-        }
-
-        // Fetch user data from the users table
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('full_name, email, created_at')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) throw error;
-        
-        setUserData(userData);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
-  // Mock data for favorites and reviews - you can implement real data fetching later
   const favoriteRestaurants = [
     {
       id: '1',
@@ -77,23 +43,12 @@ export default function UserProfile() {
     }
   ];
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/restaurants" className="text-emerald-600 hover:text-emerald-700">
+            <Link to="/" className="text-emerald-600 hover:text-emerald-700">
               ← Back to Restaurants
             </Link>
             <button className="text-gray-600 hover:text-gray-700">
@@ -112,12 +67,12 @@ export default function UserProfile() {
                   <User className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">{userData?.full_name}</h2>
-                  <p className="text-gray-600">{userData?.email}</p>
+                  <h2 className="text-xl font-semibold">{user.name}</h2>
+                  <p className="text-gray-600">{user.email}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600">
-                Member since {new Date(userData?.created_at || '').toLocaleDateString()}
+                Member since {user.joinDate}
               </p>
             </div>
           </div>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Store, Mail, Lock } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { supabase } from '../../lib/supabase';
 
 export default function HostAuth() {
   const navigate = useNavigate();
@@ -11,45 +10,19 @@ export default function HostAuth() {
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
     try {
-      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (signInError) throw signInError;
-
-      if (user) {
-        // Verify if the user is a host
-        const { data: hostData, error: hostError } = await supabase
-          .from('hosts')
-          .select('id')
-          .eq('id', user.id)
-          .single();
-
-        if (hostError || !hostData) {
-          throw new Error('Unauthorized access. Please sign in with a host account.');
-        }
-
-        navigate('/host/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication');
-    } finally {
-      setIsLoading(false);
+      // TODO: Implement actual host authentication logic here
+      console.log('Host login:', formData);
+      navigate('/host/dashboard');
+    } catch (error) {
+      console.error('Authentication error:', error);
     }
   };
 
@@ -72,12 +45,6 @@ export default function HostAuth() {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600">
-            {error}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             label="Email Address"
@@ -88,7 +55,6 @@ export default function HostAuth() {
             value={formData.email}
             onChange={handleChange}
             placeholder="Enter your business email"
-            disabled={isLoading}
           />
 
           <Input
@@ -100,7 +66,6 @@ export default function HostAuth() {
             value={formData.password}
             onChange={handleChange}
             placeholder="Enter your password"
-            disabled={isLoading}
           />
 
           <div className="flex items-center justify-end">
@@ -113,8 +78,8 @@ export default function HostAuth() {
             </button>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+          <Button type="submit" className="w-full">
+            Sign In
           </Button>
         </form>
 
