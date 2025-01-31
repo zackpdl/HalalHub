@@ -3,24 +3,56 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, Mail, Lock } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { supabase } from '../../lib/supabase';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
     setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - replace with actual auth logic
-    if (credentials.email === 'admin@example.com' && credentials.password === 'admin') {
-      navigate('/admin/dashboard');
-    } else {
-      setError('Invalid credentials');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (signInError) throw signInError;
+
+      if (user) {
+        // Verify if the user is an admin
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+
+        if (adminError || !adminData) {
+          throw new Error('Unauthorized access');
+        }
+
+        // Update last login
+        await supabase
+          .from('admins')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', user.id);
+
+        navigate('/admin/dashboard');
+      }
+    } catch (err) {
+      setError('Invalid credentials or unauthorized access');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +84,7 @@ export default function AdminLogin() {
             required
             value={credentials.email}
             onChange={handleChange}
+            disabled={isLoading}
           />
           <Input
             label="Password"
@@ -61,9 +94,10 @@ export default function AdminLogin() {
             required
             value={credentials.password}
             onChange={handleChange}
+            disabled={isLoading}
           />
-          <Button type="submit" className="w-full">
-            Sign in to Dashboard
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign in to Dashboard'}
           </Button>
         </form>
       </div>

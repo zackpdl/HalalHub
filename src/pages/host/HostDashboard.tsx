@@ -1,18 +1,14 @@
 import React from 'react';
 import { 
-  TrendingUp, 
   Users, 
-  Star, 
-  AlertCircle 
+  Star
 } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 
 export default function HostDashboard() {
   const stats = [
-    { label: 'Total Orders', value: '1,234', icon: TrendingUp, trend: '+12.5%' },
     { label: 'Customers', value: '856', icon: Users, trend: '+5.2%' },
-    { label: 'Rating', value: '4.8', icon: Star, trend: '+0.3' },
-    { label: 'Issues', value: '2', icon: AlertCircle, trend: '-50%' }
+    { label: 'Rating', value: '4.8', icon: Star, trend: '+0.3' }
   ];
 
   return (
@@ -25,7 +21,7 @@ export default function HostDashboard() {
           <p className="text-gray-600">Welcome back, Restaurant Owner</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {stats.map((stat) => (
             <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">

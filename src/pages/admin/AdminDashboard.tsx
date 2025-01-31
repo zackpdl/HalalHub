@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Store, 
   AlertCircle, 
@@ -6,39 +7,141 @@ import {
   Clock 
 } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
+import { supabase } from '../../lib/supabase';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  certification_type: string;
+  certification_status: string;
+  certification_expiry: string;
+  created_at: string;
+}
+
+interface DashboardStats {
+  totalRestaurants: number;
+  pendingReviews: number;
+  activeCertifications: number;
+  complianceIssues: number;
+}
 
 export default function AdminDashboard() {
-  const stats = [
-    { label: 'Total Restaurants', value: '156', icon: Store, trend: '+12.5%' },
-    { label: 'Pending Reviews', value: '23', icon: Clock, trend: '+5' },
-    { label: 'Active Certifications', value: '142', icon: CheckCircle2, trend: '+3' },
-    { label: 'Compliance Issues', value: '4', icon: AlertCircle, trend: '-2' }
-  ];
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalRestaurants: 0,
+    pendingReviews: 0,
+    activeCertifications: 0,
+    complianceIssues: 0,
+  });
+  const [recentRestaurants, setRecentRestaurants] = useState<Restaurant[]>([]);
+  const [certificationUpdates, setcertificationUpdates] = useState<Restaurant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const recentRestaurants = [
-    { name: 'Spice Garden', status: 'Pending Review', date: '2024-03-15' },
-    { name: 'Al-Barakah', status: 'Approved', date: '2024-03-14' },
-    { name: 'Halal Delight', status: 'Under Investigation', date: '2024-03-13' }
-  ];
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/admin/login');
+        return;
+      }
 
-  const certificationUpdates = [
-    { restaurant: 'Spice Garden', type: 'MUIS', status: 'Pending', expiryDate: '2024-12-31' },
-    { restaurant: 'Al-Barakah', type: 'JAKIM', status: 'Active', expiryDate: '2025-06-30' },
-    { restaurant: 'Halal Delight', type: 'HMC', status: 'Expiring Soon', expiryDate: '2024-04-15' }
-  ];
+      // Verify admin status
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!adminData) {
+        navigate('/admin/login');
+        return;
+      }
+    };
+
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch total restaurants
+        const { data: restaurantsData } = await supabase
+          .from('restaurants')
+          .select('*');
+
+        const { data: pendingData } = await supabase
+          .from('restaurants')
+          .select('*')
+          .eq('certification_status', 'pending');
+
+        const { data: activeData } = await supabase
+          .from('restaurants')
+          .select('*')
+          .eq('certification_status', 'active');
+
+        const { data: complianceData } = await supabase
+          .from('restaurants')
+          .select('*')
+          .eq('certification_status', 'investigation');
+
+        setStats({
+          totalRestaurants: restaurantsData?.length || 0,
+          pendingReviews: pendingData?.length || 0,
+          activeCertifications: activeData?.length || 0,
+          complianceIssues: complianceData?.length || 0,
+        });
+
+        // Fetch recent restaurants
+        const { data: recentData } = await supabase
+          .from('restaurants')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (recentData) {
+          setRecentRestaurants(recentData);
+        }
+
+        // Fetch certification updates
+        const { data: certData } = await supabase
+          .from('restaurants')
+          .select('*')
+          .order('certification_expiry', { ascending: true })
+          .limit(3);
+
+        if (certData) {
+          setcertificationUpdates(certData);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+    fetchDashboardData();
+  }, [navigate]);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'approved':
+      case 'active':
         return 'bg-green-100 text-green-800';
-      case 'pending review':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'under investigation':
+      case 'investigation':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -51,20 +154,37 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat) => (
-            <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <stat.icon className="h-6 w-6 text-emerald-600" />
-                <span className={`text-sm font-medium ${
-                  stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.trend}
-                </span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
-              <p className="text-gray-600">{stat.label}</p>
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <Store className="h-6 w-6 text-emerald-600" />
             </div>
-          ))}
+            <h3 className="text-2xl font-bold text-gray-900">{stats.totalRestaurants}</h3>
+            <p className="text-gray-600">Total Restaurants</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <Clock className="h-6 w-6 text-emerald-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{stats.pendingReviews}</h3>
+            <p className="text-gray-600">Pending Reviews</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{stats.activeCertifications}</h3>
+            <p className="text-gray-600">Active Certifications</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <AlertCircle className="h-6 w-6 text-emerald-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{stats.complianceIssues}</h3>
+            <p className="text-gray-600">Compliance Issues</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -72,13 +192,15 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Applications</h2>
             <div className="space-y-4">
               {recentRestaurants.map((restaurant) => (
-                <div key={restaurant.name} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={restaurant.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <p className="font-medium">{restaurant.name}</p>
-                    <p className="text-sm text-gray-600">Applied: {restaurant.date}</p>
+                    <p className="text-sm text-gray-600">
+                      Applied: {new Date(restaurant.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(restaurant.status)}`}>
-                    {restaurant.status}
+                  <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(restaurant.certification_status)}`}>
+                    {restaurant.certification_status}
                   </span>
                 </div>
               ))}
@@ -89,20 +211,16 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Certification Updates</h2>
             <div className="space-y-4">
               {certificationUpdates.map((cert) => (
-                <div key={cert.restaurant} className="p-4 border rounded-lg">
+                <div key={cert.id} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{cert.restaurant}</span>
-                    <span className={`px-3 py-1 text-sm rounded-full ${
-                      cert.status === 'Active' ? 'bg-green-100 text-green-800' :
-                      cert.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {cert.status}
+                    <span className="font-medium">{cert.name}</span>
+                    <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(cert.certification_status)}`}>
+                      {cert.certification_status}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>{cert.type} Certification</span>
-                    <span>Expires: {cert.expiryDate}</span>
+                    <span>{cert.certification_type} Certification</span>
+                    <span>Expires: {new Date(cert.certification_expiry).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}
