@@ -19,14 +19,12 @@ export default function Sidebar({ type }: SidebarProps) {
   const menuItems = type === 'host' ? [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/host/dashboard' },
     { icon: UtensilsCrossed, label: 'Menu', path: '/host/menu' },
-   // { icon: FileText, label: 'Orders', path: '/host/orders' },
-    { icon: Settings, label: 'Settings', path: '/host/settings' }
-  ] : [
+    { icon: FileText, label: 'Reviews', path: '/host/reviews' }, // ✅ Add Reviews Page
+] : [
     { icon: LayoutDashboard, label: 'Overview', path: '/admin/dashboard' },
     { icon: UtensilsCrossed, label: 'Restaurants', path: '/admin/restaurants' },
-    { icon: FileText, label: 'Certifications', path: '/admin/certifications' },
-    { icon: Settings, label: 'Settings', path: '/admin/settings' }
-  ];
+];
+
 
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">

@@ -12,9 +12,10 @@ interface AuthFormProps {
   };
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent) => void;
+  isLoading: boolean;  // Add isLoading prop
 }
 
-export default function AuthForm({ isSignIn, formData, onChange, onSubmit }: AuthFormProps) {
+export default function AuthForm({ isSignIn, formData, onChange, onSubmit, isLoading }: AuthFormProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {!isSignIn && (
@@ -51,8 +52,8 @@ export default function AuthForm({ isSignIn, formData, onChange, onSubmit }: Aut
         placeholder="Enter your password"
       />
 
-      <Button type="submit" className="w-full">
-        {isSignIn ? 'Sign In' : 'Create Account'}
+      <Button type="submit" className="w-full" disabled={isLoading}> {/* Disable button when loading */}
+        {isLoading ? 'Loading...' : isSignIn ? 'Sign In' : 'Create Account'}
       </Button>
     </form>
   );

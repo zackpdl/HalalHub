@@ -1,59 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Heart } from 'lucide-react';
 import Input from '../../components/ui/Input';
 import Rating from '../../components/ui/Rating';
 
+interface Restaurant {
+  id: number;
+  restaurant_name: string;
+  cuisine: string;
+  address: string;
+  city: string;
+  halal_cert_type: string;
+  average_rating?: number;
+  review_count?: number;
+}
+
 export default function RestaurantList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - replace with actual API calls
-  const restaurants = [
-    {
-      id: '1',
-      name: 'Spice Garden',
-      image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80&w=1000',
-      cuisine: 'Indian',
-      rating: 4.5,
-      reviews: 128,
-      address: '123 Main St',
-      certType: 'MUIS'
-    },
-    {
-      id: '2',
-      name: 'Al-Barakah',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1000',
-      cuisine: 'Middle Eastern',
-      rating: 4.8,
-      reviews: 256,
-      address: '456 Oak Ave',
-      certType: 'JAKIM'
-    },
-    {
-      id: '3',
-      name: 'Halal Delight',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000',
-      cuisine: 'International',
-      rating: 4.2,
-      reviews: 89,
-      address: '789 Pine St',
-      certType: 'HMC'
-    }
-  ];
+  useEffect(() => {
+    fetch('http://localhost:5001/api/restaurants')
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch restaurants');
+        return response.json();
+      })
+      .then(data => {
+        setRestaurants(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching restaurants:', error);
+        setError(error.message);
+        setLoading(false);
+      });
+  }, []);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites(prev => 
-      prev.includes(id) 
-        ? prev.filter(fav => fav !== id)
-        : [...prev, id]
+  const toggleFavorite = (id: number) => {
+    setFavorites(prev =>
+      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
 
   const filteredRestaurants = restaurants.filter(restaurant =>
-    restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    restaurant.restaurant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     restaurant.cuisine.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,7 +65,6 @@ export default function RestaurantList() {
           </div>
         </div>
       </header>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <Input
@@ -78,14 +75,13 @@ export default function RestaurantList() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRestaurants.map((restaurant) => (
             <div key={restaurant.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="relative h-48">
                 <img
-                  src={restaurant.image}
-                  alt={restaurant.name}
+                  src={`https://via.placeholder.com/400?text=${restaurant.restaurant_name}`}
+                  alt={restaurant.restaurant_name}
                   className="w-full h-full object-cover"
                 />
                 <button
@@ -105,27 +101,28 @@ export default function RestaurantList() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-xl font-semibold text-gray-900">
-                    {restaurant.name}
+                    {restaurant.restaurant_name}
                   </h2>
                   <span className="px-3 py-1 text-sm rounded-full bg-emerald-100 text-emerald-800">
-                    {restaurant.certType}
+                    {restaurant.halal_cert_type}
                   </span>
                 </div>
                 
                 <p className="text-gray-600 mb-4">{restaurant.cuisine}</p>
                 
                 <div className="flex items-center mb-4">
-                  <Rating value={restaurant.rating} readonly />
+                  <Rating 
+                    value={restaurant.average_rating || 0} 
+                    readonly 
+                  />
                   <span className="ml-2 text-sm text-gray-600">
-                    ({restaurant.reviews} reviews)
+                    {restaurant.review_count ? `(${restaurant.review_count} reviews)` : '(No reviews yet)'}
                   </span>
                 </div>
-
                 <div className="flex items-center text-gray-600 mb-4">
                   <MapPin className="h-5 w-5 mr-2" />
-                  {restaurant.address}
+                  {restaurant.address}, {restaurant.city}
                 </div>
-
                 <Link
                   to={`/restaurant/${restaurant.id}`}
                   className="block w-full text-center bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition-colors"

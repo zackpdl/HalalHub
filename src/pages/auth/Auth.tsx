@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthForm from '../../components/auth/AuthForm';
 
@@ -10,6 +10,16 @@ export default function Auth() {
     password: '',
     name: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/restaurants');
+    }
+  }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,15 +27,40 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError(null);
+    setIsLoading(true);
+  
+    const endpoint = isSignIn ? '/api/auth/signin' : '/api/auth/signup';
     try {
-      // TODO: Implement actual authentication logic here
-      console.log('Form submitted:', formData);
-      
-      // For now, just redirect to restaurants page
-      navigate('/restaurants');
-    } catch (error) {
-      console.error('Authentication error:', error);
+      const response = await fetch(`http://localhost:5001${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+  
+      // Log the response for debugging
+      console.log('Response:', response);
+  
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Received non-JSON response');
+      }
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || 'Something went wrong');
+      }
+  
+      console.log('Success:', data);
+      localStorage.setItem('token', data.token); // Store JWT token
+      navigate('/restaurants'); // Redirect to restaurants page
+    } catch (error: any) {
+      setError(error.message || 'Authentication error');
+      console.error('Authentication error:', error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -47,11 +82,18 @@ export default function Auth() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-4 text-center text-sm text-red-600">
+            <p>{error}</p>
+          </div>
+        )}
+
         <AuthForm
           isSignIn={isSignIn}
           formData={formData}
           onChange={handleChange}
           onSubmit={handleSubmit}
+          isLoading={isLoading} // Ensure this line is correctly formatted
         />
 
         {isSignIn && (

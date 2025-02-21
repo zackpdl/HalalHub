@@ -1,18 +1,115 @@
-import React from 'react';
-import { 
-  TrendingUp, 
-  Users, 
-  Star, 
-  AlertCircle 
-} from 'lucide-react';
-import Sidebar from '../../components/Sidebar';
+import React, { useState, useEffect } from "react";
+import { Users, Star, AlertCircle } from "lucide-react";
+import Sidebar from "../../components/Sidebar";
+import { useNavigate } from "react-router-dom";
+
+interface Review {
+  rating: number;
+  comment: string;
+  customer_name: string;
+  created_at: string;
+}
 
 export default function HostDashboard() {
+  const navigate = useNavigate();
+
+  const [restaurantDetails, setRestaurantDetails] = useState({
+    name: "",
+    location: "",
+    halalCertification: "",
+    certNumber: "",
+    certExpiry: "",
+  });
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState<number | string>(0);
+
+  
+
+  useEffect(() => {
+    const fetchRestaurantDetails = async () => {
+      try {
+        const hostData = localStorage.getItem("hostData");
+        if (!hostData) {
+          navigate("/host/login");
+          return;
+        }
+    
+        const { id } = JSON.parse(hostData);
+        const response = await fetch(
+          `http://localhost:5001/api/host/restaurant-details?hostId=${id}`
+        );
+    
+        const text = await response.text();
+        console.log("Raw API Response:", text); // Debugging raw response
+    
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          const data = JSON.parse(text);
+    
+          console.log("Parsed API Response:", data); // Debugging parsed data
+    
+          if (response.ok) {
+            console.log("Fetched Certification Expiry Date:", data.halal_cert_expiry);
+    
+            setRestaurantDetails({
+              name: data.name || "Unknown",
+              location: data.location || "No location set",
+              halalCertification: data.halal_certification || "Not certified",
+              certNumber: data.halal_cert_number || "N/A",
+              certExpiry: data.cert_expiry
+                ? new Date(data.cert_expiry).toISOString() // Check format
+                : "",
+            });
+          } else {
+            console.error("Failed to fetch restaurant details:", data.message);
+          }
+        } else {
+          console.error("Response is not JSON:", text);
+        }
+      } catch (error) {
+        console.error("Error fetching restaurant details:", error);
+      }
+    };
+    
+
+    const fetchReviews = async () => {
+      try {
+        const hostData = localStorage.getItem("hostData");
+        if (!hostData) return;
+
+        const { id } = JSON.parse(hostData);
+        const response = await fetch(
+          `http://localhost:5001/api/host/reviews?hostId=${id}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch reviews");
+        }
+
+        const { reviews } = await response.json();
+        setReviews(reviews);
+
+        // Calculate average rating
+        if (reviews.length > 0) {
+          const totalRating = reviews.reduce((sum: any, review: { rating: any; }) => sum + review.rating, 0);
+          setAverageRating(Number((totalRating / reviews.length).toFixed(1)));
+        } else {
+          setAverageRating("N/A");
+        }
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        setAverageRating("N/A");
+      }
+    };
+
+    fetchRestaurantDetails();
+    fetchReviews();
+  }, [navigate]);
+
   const stats = [
-    { label: 'Total Orders', value: '1,234', icon: TrendingUp, trend: '+12.5%' },
-    { label: 'Customers', value: '856', icon: Users, trend: '+5.2%' },
-    { label: 'Rating', value: '4.8', icon: Star, trend: '+0.3' },
-    { label: 'Issues', value: '2', icon: AlertCircle, trend: '-50%' }
+    { label: "Customers", value: "856", icon: Users, trend: "+5.2%" },
+    { label: "Rating", value: averageRating, icon: Star, trend: "+0.3" },
+    { label: "Reviews", value: reviews.length, icon: AlertCircle, trend: "+2" },
   ];
 
   return (
@@ -22,7 +119,7 @@ export default function HostDashboard() {
       <main className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, Restaurant Owner</p>
+          <p className="text-gray-600">Welcome back, {restaurantDetails.name}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -30,10 +127,16 @@ export default function HostDashboard() {
             <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <stat.icon className="h-6 w-6 text-emerald-600" />
-                <span className={`text-sm font-medium ${
-                  stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.trend}
+                <span
+                  className={`text-sm font-medium ${
+                    stat.trend && stat.trend.startsWith("+")
+                      ? "text-green-600"
+                      : stat.trend.startsWith("-")
+                      ? "text-red-600"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {stat.trend || "N/A"}
                 </span>
               </div>
               <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
@@ -44,32 +147,77 @@ export default function HostDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Map & Location</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Location</h2>
             <div className="p-4 border rounded-lg">
-              <iframe
-                title="Example Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.835434509555!2d144.95592801531895!3d-37.817209979751735!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6ad642af0f11fd81%3A0xf577d7f1222ecb0!2sFederation%20Square!5e0!3m2!1sen!2sau!4v1699196400000!5m2!1sen!2sau"
-                width="100%"
-                height="300"
-                style={{ border: 0 }}
-                
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-              <p className="text-gray-600 mt-4">Embed your restaurant's location here to help customers find you easily.</p>
+              {restaurantDetails.location ? (
+                <iframe
+                  title="Restaurant Location"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(
+                    restaurantDetails.location
+                  )}&output=embed`}
+                  width="100%"
+                  height="300"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              ) : (
+                <p className="text-gray-600">No location set.</p>
+              )}
             </div>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Certification Status</h2>
-            <div className="p-4 border rounded-lg bg-emerald-50">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Certification Status
+            </h2>
+            <div
+              className={`p-4 border rounded-lg ${
+                restaurantDetails.halalCertification.toLowerCase() === "certified"
+                  ? "bg-emerald-50"
+                  : "bg-red-50"
+              }`}
+            >
               <div className="flex items-center justify-between mb-4">
-                <span className="font-medium text-emerald-800">MUIS Certification</span>
-                <span className="px-3 py-1 text-sm rounded-full bg-emerald-100 text-emerald-800">
-                  Active
+                <span
+                  className={`font-medium ${
+                    restaurantDetails.halalCertification.toLowerCase() ===
+                    "certified"
+                      ? "text-emerald-800"
+                      : "text-red-800"
+                  }`}
+                >
+                  {restaurantDetails.halalCertification}
+                </span>
+                <span
+                  className={`px-3 py-1 text-sm rounded-full ${
+                    restaurantDetails.halalCertification.toLowerCase() ===
+                    "certified"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {restaurantDetails.halalCertification.toLowerCase() ===
+                  "certified"
+                    ? "Active"
+                    : "Not Certified"}
                 </span>
               </div>
-              <p className="text-sm text-emerald-700">Valid until: December 31, 2024</p>
+              {restaurantDetails.halalCertification.toLowerCase() === "certified" ? (
+                <>
+                  <p className="text-sm text-emerald-700">
+                    Certificate Number: {restaurantDetails.certNumber}
+                  </p>
+                  <p className="text-sm text-emerald-700">
+                    Valid until:{" "}
+                    {new Date(restaurantDetails.certExpiry).toLocaleDateString()}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-red-700">
+                  Your restaurant is not certified yet.
+                </p>
+              )}
             </div>
           </div>
         </div>

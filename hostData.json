@@ -1,0 +1,20 @@
+{
+  "host": {
+    "id": 1,
+    "email": "host@example.com",
+    "restaurant_id": 7,
+    "phone": "1234567890",
+    "restaurant": {
+      "id": 7,
+      "restaurant_name": "Sample Restaurant",
+      "address": "123 Main St",
+      "city": "Sample City",
+      "cuisine": "Halal",
+      "opening_hours": "09:00",
+      "closing_hours": "22:00",
+      "halal_cert_type": "JAKIM",
+      "halal_cert_number": "SAMPLE123",
+      "halal_cert_expiry": "2024-12-31"
+    }
+  }
+}

@@ -12,7 +12,6 @@ export default function AdminDashboard() {
     { label: 'Total Restaurants', value: '156', icon: Store, trend: '+12.5%' },
     { label: 'Pending Reviews', value: '23', icon: Clock, trend: '+5' },
     { label: 'Active Certifications', value: '142', icon: CheckCircle2, trend: '+3' },
-    { label: 'Compliance Issues', value: '4', icon: AlertCircle, trend: '-2' }
   ];
 
   const recentRestaurants = [

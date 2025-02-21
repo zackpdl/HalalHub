@@ -8,8 +8,10 @@ export default function HostAuth() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,12 +19,31 @@ export default function HostAuth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    setLoading(true); // Show loading indicator
+
     try {
-      // TODO: Implement actual host authentication logic here
-      console.log('Host login:', formData);
+      const response = await fetch('http://localhost:5001/api/host/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Something went wrong');
+      }
+
+      console.log('Host login successful:', data);
+      // Store host data in localStorage
+      localStorage.setItem('hostData', JSON.stringify(data.host));
       navigate('/host/dashboard');
-    } catch (error) {
-      console.error('Authentication error:', error);
+    } catch (error: any) {
+      console.error('Authentication error:', error.message);
+      setError(error.message || 'Failed to log in'); // Show error message
+    } finally {
+      setLoading(false); // Hide loading indicator
     }
   };
 
@@ -46,6 +67,8 @@ export default function HostAuth() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <div className="text-red-500 text-center">{error}</div>}
+
           <Input
             label="Email Address"
             name="email"
@@ -78,8 +101,8 @@ export default function HostAuth() {
             </button>
           </div>
 
-          <Button type="submit" className="w-full">
-            Sign In
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
 
