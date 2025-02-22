@@ -92,13 +92,6 @@ export default function HostAuth() {
           />
 
           <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => navigate('/host/forgot-password')}
-              className="text-sm font-medium text-emerald-600 hover:text-emerald-500"
-            >
-              Forgot your password?
-            </button>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -107,12 +100,6 @@ export default function HostAuth() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Need help?{' '}
-            <a href="#" className="font-medium text-emerald-600 hover:text-emerald-500">
-              Contact Support
-            </a>
-          </p>
         </div>
       </div>
     </div>

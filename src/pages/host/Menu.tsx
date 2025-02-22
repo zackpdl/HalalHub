@@ -1,104 +1,81 @@
 import React, { useState, useEffect } from "react";
-import { Menu, CheckCircle, PlusCircle } from "lucide-react";
+import { Menu, CheckCircle, PlusCircle, Trash2 } from "lucide-react";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 
 interface MenuItem {
+  id: number;
   name: string;
   description: string;
   price: number;
 }
 
-// Add new interface and state
-interface MenuItemWithId extends MenuItem {
-  id: number;
-}
-
-// Remove the duplicate form section (lines ~177-220) and keep only the form inside the menu items mapping
 export default function MenuPage() {
   const navigate = useNavigate();
-  const [menuItems, setMenuItems] = useState<MenuItemWithId[]>([]);
-  const [editingItem, setEditingItem] = useState<MenuItemWithId | null>(null);
-  const [newItem, setNewItem] = useState<MenuItem>({
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [newItem, setNewItem] = useState({
     name: "",
     description: "",
     price: 0,
   });
 
+  // Fetch menu items
   useEffect(() => {
-    // Check authentication first
-    const hostData = localStorage.getItem("hostData");
-    if (!hostData) {
-      navigate("/host/login");
-      return;
-    }
-  
-    const parsedHostData = JSON.parse(hostData);
-    console.log("Parsed host data:", parsedHostData); // Debug log
-  
-    // Try different ways to get restaurant ID
-    const restaurantId = 
-      parsedHostData.restaurantId || 
-      parsedHostData.restaurant_id || 
-      parsedHostData.restaurant?.id;
-  
-    if (!restaurantId) {
-      console.error("No restaurant ID found in host data:", parsedHostData);
-      return;
-    }
-  
-    // Fetch menu items
     const fetchMenuItems = async () => {
       try {
-        console.log("Fetching menu for restaurant:", restaurantId);
-        
+        const hostData = localStorage.getItem("hostData");
+        if (!hostData) {
+          navigate("/host/login");
+          return;
+        }
+
+        const parsedHostData = JSON.parse(hostData);
+        const restaurantId =
+          parsedHostData.restaurantId ||
+          parsedHostData.restaurant_id ||
+          parsedHostData.restaurant?.id;
+
+        if (!restaurantId) {
+          console.error("No restaurant ID found in host data:", parsedHostData);
+          return;
+        }
+
         const response = await fetch(
           `http://localhost:5001/api/host/menu?restaurant_id=${restaurantId}&host_id=${parsedHostData.id}`
         );
-  
-        if (response.status === 404) {
-          console.log("No menu items found for restaurant:", restaurantId);
-          setMenuItems([]);
-          return;
-        }
-  
+
         if (!response.ok) {
           throw new Error(`Failed to fetch menu items: ${response.statusText}`);
         }
-  
-        // In the fetch section
+
         const { menu } = await response.json();
-        console.log("Received menu data:", menu);
-        // Convert price to number if it's a string
-        const formattedMenu = Array.isArray(menu) ? menu.map(item => ({
-          ...item,
-          price: Number(item.price)
-        })) : [];
+        const formattedMenu = Array.isArray(menu)
+          ? menu.map((item: MenuItem) => ({
+              ...item,
+              price: Number(item.price),
+            }))
+          : [];
         setMenuItems(formattedMenu);
       } catch (error) {
         console.error("Error fetching menu items:", error);
         setMenuItems([]);
       }
     };
-  
+
     fetchMenuItems();
   }, [navigate]);
 
-  // Remove the duplicate localStorage check here
-  // Add a new menu item
-  // Also update handleAddItem to handle the response correctly
-  // Update handleAddItem
+  // Add new menu item
   const handleAddItem = async () => {
     try {
       const hostData = localStorage.getItem("hostData");
       if (!hostData) return;
-  
+
       const parsedData = JSON.parse(hostData);
       const response = await fetch(`http://localhost:5001/api/host/menu`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           host_id: parsedData.id,
           restaurant_id: parsedData.restaurantId,
@@ -107,12 +84,12 @@ export default function MenuPage() {
           price: Number(newItem.price),
         }),
       });
-  
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || "Failed to add menu item");
       }
-  
+
       setMenuItems([...menuItems, { ...data.menuItem, price: Number(data.menuItem.price) }]);
       setNewItem({ name: "", description: "", price: 0 });
     } catch (error) {
@@ -120,165 +97,147 @@ export default function MenuPage() {
     }
   };
 
-  // Add handleEditItem function
-  // Update the handleEditItem function to use query parameters instead of URL params
-const handleEditItem = async (item: MenuItemWithId) => {
-  try {
-    const hostData = localStorage.getItem("hostData");
-    if (!hostData) return;
+  // Edit menu item
+  const handleEditItem = async (item: MenuItem) => {
+    try {
+      const hostData = localStorage.getItem("hostData");
+      if (!hostData) return;
 
-    const parsedData = JSON.parse(hostData);
-
-    // Ensure all required fields are included in the request body
-    const response = await fetch(
-      `http://localhost:5001/api/host/menu?id=${item.id}&host_id=${parsedData.id}`,
-      {
+      const parsedData = JSON.parse(hostData);
+      const response = await fetch(`http://localhost:5001/api/host/menu?id=${item.id}&host_id=${parsedData.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: item.id, // Include the menu item ID
-          restaurant_id: parsedData.restaurantId, // Include the restaurant ID
-          host_id: parsedData.id, // Include the host ID
+          id: item.id,
+          restaurant_id: parsedData.restaurantId,
+          host_id: parsedData.id,
           name: item.name,
           description: item.description,
           price: Number(item.price),
         }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to update menu item");
       }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || "Failed to update menu item");
+      const data = await response.json();
+      setMenuItems(
+        menuItems.map((menuItem) =>
+          menuItem.id === item.id ? { ...data.menuItem, price: Number(data.menuItem.price) } : menuItem
+        )
+      );
+      setEditingItem(null);
+    } catch (error) {
+      console.error("Error updating menu item:", error);
     }
+  };
 
-    const data = await response.json();
-    setMenuItems(
-      menuItems.map((menuItem) =>
-        menuItem.id === item.id
-          ? { ...data.menuItem, price: Number(data.menuItem.price) }
-          : menuItem
-      )
-    );
-    setEditingItem(null);
-  } catch (error) {
-    console.error("Error updating menu item:", error);
-  }
-};
-  // Update the edit form inputs to handle undefined values
-  <form onSubmit={(e) => {
-    e.preventDefault();
-    if (editingItem) handleEditItem(editingItem);
-  }}>
-    <input
-      type="text"
-      value={editingItem?.name || ""}
-      onChange={(e) => editingItem && setEditingItem({ ...editingItem, name: e.target.value })}
-      className="w-full text-xl font-bold mb-2 p-2 border rounded"
-      required
-    />
-    <textarea
-      value={editingItem?.description || ""}
-      onChange={(e) => editingItem && setEditingItem({ ...editingItem, description: e.target.value })}
-      className="w-full mb-2 p-2 border rounded"
-      required
-    />
-    <input
-      type="number"
-      value={editingItem?.price || 0}
-      onChange={(e) => editingItem && setEditingItem({ ...editingItem, price: Number(e.target.value) })}
-      className="w-full mb-2 p-2 border rounded"
-      required
-    />
+  // Delete menu item
+  const handleDeleteItem = async (itemId: number) => {
+    try {
+      const hostData = localStorage.getItem("hostData");
+      if (!hostData) return;
 
-    <div className="flex gap-2">
-      <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded">
-        Save
-      </button>
-      <button 
-        type="button" 
-        onClick={() => setEditingItem(null)}
-        className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
+      const parsedData = JSON.parse(hostData);
+      const response = await fetch(`http://localhost:5001/api/host/menu?id=${itemId}&host_id=${parsedData.id}`, {
+        method: "DELETE",
+      });
 
-  // Update the menu items render section
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to delete menu item");
+      }
+
+      const data = await response.json();
+      setMenuItems(menuItems.filter((item) => item.id !== itemId));
+      console.log("Menu item deleted successfully:", data.deletedItem);
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar type="host" />
-
       <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Menu</h1>
-          <p className="text-gray-600">Manage your restaurant's menu here</p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Menu</h1>
+        <p className="text-gray-600 mb-8">Manage your restaurant's menu here</p>
 
-        // In the render section
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Display menu items */}
+        <div className="space-y-6">
           {menuItems.map((item) => (
-            <div key={item.id} className="bg-white p-6 rounded-xl shadow-sm">
+            <div key={item.id} className="bg-white p-6 rounded-lg shadow-sm">
               {editingItem?.id === item.id ? (
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleEditItem(editingItem);
-                }}>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (editingItem) handleEditItem(editingItem);
+                  }}
+                >
                   <input
-                    type="text"
                     value={editingItem.name}
-                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, name: e.target.value })
+                    }
                     className="w-full text-xl font-bold mb-2 p-2 border rounded"
                     required
                   />
                   <textarea
                     value={editingItem.description}
-                    onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, description: e.target.value })
+                    }
                     className="w-full mb-2 p-2 border rounded"
                     required
                   />
                   <input
                     type="number"
                     value={editingItem.price}
-                    onChange={(e) => setEditingItem({ ...editingItem, price: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditingItem({ ...editingItem, price: Number(e.target.value) })
+                    }
                     className="w-full mb-2 p-2 border rounded"
                     required
                   />
-                  <div className="flex gap-2">
-                    <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded">
-                      Save
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setEditingItem(null)}
-                      className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded">
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingItem(null)}
+                    className="ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded"
+                  >
+                    Cancel
+                  </button>
                 </form>
               ) : (
                 <>
-                  <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
+                  <h3 className="text-xl font-bold">{item.name}</h3>
                   <p className="text-gray-600">{item.description}</p>
-                  <p className="text-gray-800 font-semibold">
-                    ${item.price.toFixed(2)}
-                  </p>
-                  <button
-                    onClick={() => setEditingItem(item)}
-                    className="mt-4 text-blue-600 hover:text-blue-800"
-                  >
-                    Edit
-                  </button>
+                  <p className="text-emerald-600 font-medium">฿{item.price.toFixed(2)}</p>
+                  <div className="mt-4 space-x-4">
+                    <button
+                      onClick={() => setEditingItem(item)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="inline-block h-4 w-4 mr-1" /> Delete
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           ))}
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm">
+        {/* Add new menu item form */}
+        <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Item</h2>
           <form
             onSubmit={(e) => {
@@ -286,43 +245,36 @@ const handleEditItem = async (item: MenuItemWithId) => {
               handleAddItem();
             }}
           >
-            <div className="mb-4">
-              <label htmlFor="name" className="block text-gray-700">Item Name</label>
-              <input
-                type="text"
-                id="name"
-                value={newItem.name}
-                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                className="mt-1 block w-full p-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-700">Description</label>
-              <textarea
-                id="description"
-                value={newItem.description}
-                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                className="mt-1 block w-full p-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="price" className="block text-gray-700">Price</label>
-              <input
-                type="number"
-                id="price"
-                value={newItem.price}
-                onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
-                className="mt-1 block w-full p-2 border rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-emerald-600 text-white px-4 py-2 rounded-lg mt-4"
-            >
-              <PlusCircle className="inline-block mr-2" /> Add Item
+            <input
+              value={newItem.name}
+              onChange={(e) =>
+                setNewItem({ ...newItem, name: e.target.value })
+              }
+              placeholder="Item Name"
+              className="mt-1 block w-full p-2 border rounded-lg"
+              required
+            />
+            <textarea
+              value={newItem.description}
+              onChange={(e) =>
+                setNewItem({ ...newItem, description: e.target.value })
+              }
+              placeholder="Description"
+              className="mt-1 block w-full p-2 border rounded-lg"
+              required
+            />
+            <input
+              type="number"
+              value={newItem.price}
+              onChange={(e) =>
+                setNewItem({ ...newItem, price: Number(e.target.value) })
+              }
+              placeholder="Price"
+              className="mt-1 block w-full p-2 border rounded-lg"
+              required
+            />
+            <button type="submit" className="mt-4 bg-emerald-600 text-white px-4 py-2 rounded">
+              Add Item
             </button>
           </form>
         </div>

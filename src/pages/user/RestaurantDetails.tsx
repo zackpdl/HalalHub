@@ -195,7 +195,7 @@ export default function RestaurantDetails() {
                   <div key={item.id} className="border-b pb-4">
                     <h3 className="text-xl font-semibold">{item.name}</h3>
                     <p className="text-sm text-gray-600">{item.description}</p>
-                    <p className="mt-2 font-medium">${item.price.toFixed(2)}</p>
+                    <p className="mt-2 font-medium">฿{item.price.toFixed(2)}</p>
                   </div>
                 ))}
               </div>

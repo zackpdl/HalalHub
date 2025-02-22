@@ -10,9 +10,17 @@ const app = express();
 const port = process.env.PORT || 5001;
 
 // Update CORS configuration to allow PUT method
+// Update CORS configuration to include DELETE method
 app.use(cors({
-  origin: 'http://localhost:5173', // Update to match your Vite frontend URL
-  methods: ['GET', 'POST', 'PUT'], // Add PUT to allowed methods
+  origin: 'http://localhost:5173', // Allow requests from the frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Include DELETE in allowed methods
+  credentials: true // Allow cookies or authentication headers
+}));
+
+// Update CORS configuration to include DELETE method
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Added DELETE to allowed methods
   credentials: true
 }));
 
@@ -380,6 +388,40 @@ app.post('/api/host/menu', async (req, res) => {
       details: err.message,
       hint: err.hint
     });
+  }
+});
+// Delete menu item endpoint
+app.delete('/api/host/menu', async (req, res) => {
+  const { id, host_id } = req.query;
+  
+  if (!id || !host_id) {
+    return res.status(400).json({ message: "Menu item ID and host ID are required" });
+  }
+
+  try {
+    // First verify that the menu item belongs to a restaurant owned by this host
+    const authCheck = await pool.query(`
+      SELECT m.id 
+      FROM menus m
+      JOIN restaurants r ON m.restaurant_id = r.id
+      WHERE m.id = $1 AND r.host_id = $2
+    `, [id, host_id]);
+
+    if (authCheck.rows.length === 0) {
+      return res.status(403).json({ message: 'Not authorized to delete this menu item' });
+    }
+
+    // Delete the menu item
+    const result = await pool.query('DELETE FROM menus WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Menu item not found' });
+    }
+
+    res.json({ message: 'Menu item deleted successfully', deletedItem: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting menu item:', err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

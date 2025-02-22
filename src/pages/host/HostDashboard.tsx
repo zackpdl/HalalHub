@@ -12,19 +12,16 @@ interface Review {
 
 export default function HostDashboard() {
   const navigate = useNavigate();
-
   const [restaurantDetails, setRestaurantDetails] = useState({
     name: "",
     location: "",
     halalCertification: "",
     certNumber: "",
     certExpiry: "",
+    halalCertType: "", // Add a new field for halal_cert_type
   });
-
   const [reviews, setReviews] = useState<Review[]>([]);
   const [averageRating, setAverageRating] = useState<number | string>(0);
-
-  
 
   useEffect(() => {
     const fetchRestaurantDetails = async () => {
@@ -34,31 +31,38 @@ export default function HostDashboard() {
           navigate("/host/login");
           return;
         }
-    
+
         const { id } = JSON.parse(hostData);
         const response = await fetch(
           `http://localhost:5001/api/host/restaurant-details?hostId=${id}`
         );
-    
+
         const text = await response.text();
         console.log("Raw API Response:", text); // Debugging raw response
-    
+
         if (response.headers.get("content-type")?.includes("application/json")) {
           const data = JSON.parse(text);
-    
           console.log("Parsed API Response:", data); // Debugging parsed data
-    
+
           if (response.ok) {
-            console.log("Fetched Certification Expiry Date:", data.halal_cert_expiry);
-    
+            const expiryDate = data.cert_expiry ? new Date(data.cert_expiry) : null;
+
+            // Determine certification status
+            const currentDate = new Date();
+            const isCertified =
+              expiryDate && expiryDate > currentDate
+                ? "Certified"
+                : "Not Certified";
+
+            console.log("Fetched Certification Expiry Date:", data.cert_expiry);
+
             setRestaurantDetails({
               name: data.name || "Unknown",
               location: data.location || "No location set",
-              halalCertification: data.halal_certification || "Not certified",
+              halalCertification: isCertified,
               certNumber: data.halal_cert_number || "N/A",
-              certExpiry: data.cert_expiry
-                ? new Date(data.cert_expiry).toISOString() // Check format
-                : "",
+              certExpiry: data.cert_expiry || "",
+              halalCertType: data.halal_certification || "N/A", // Changed from halal_cert_type to halal_certification
             });
           } else {
             console.error("Failed to fetch restaurant details:", data.message);
@@ -70,28 +74,26 @@ export default function HostDashboard() {
         console.error("Error fetching restaurant details:", error);
       }
     };
-    
 
     const fetchReviews = async () => {
       try {
         const hostData = localStorage.getItem("hostData");
         if (!hostData) return;
-
         const { id } = JSON.parse(hostData);
         const response = await fetch(
           `http://localhost:5001/api/host/reviews?hostId=${id}`
         );
-
         if (!response.ok) {
           throw new Error("Failed to fetch reviews");
         }
-
         const { reviews } = await response.json();
         setReviews(reviews);
-
         // Calculate average rating
         if (reviews.length > 0) {
-          const totalRating = reviews.reduce((sum: any, review: { rating: any; }) => sum + review.rating, 0);
+          const totalRating = reviews.reduce(
+            (sum: any, review: { rating: any }) => sum + review.rating,
+            0
+          );
           setAverageRating(Number((totalRating / reviews.length).toFixed(1)));
         } else {
           setAverageRating("N/A");
@@ -107,7 +109,6 @@ export default function HostDashboard() {
   }, [navigate]);
 
   const stats = [
-    { label: "Customers", value: "856", icon: Users, trend: "+5.2%" },
     { label: "Rating", value: averageRating, icon: Star, trend: "+0.3" },
     { label: "Reviews", value: reviews.length, icon: AlertCircle, trend: "+2" },
   ];
@@ -115,13 +116,11 @@ export default function HostDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar type="host" />
-
       <main className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Welcome back, {restaurantDetails.name}</p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat) => (
             <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm">
@@ -144,7 +143,6 @@ export default function HostDashboard() {
             </div>
           ))}
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Location</h2>
@@ -166,7 +164,6 @@ export default function HostDashboard() {
               )}
             </div>
           </div>
-
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Certification Status
@@ -205,6 +202,9 @@ export default function HostDashboard() {
               </div>
               {restaurantDetails.halalCertification.toLowerCase() === "certified" ? (
                 <>
+                  <p className="text-sm text-emerald-700">
+                    Certificate Type: {restaurantDetails.halalCertType} {/* Display halal_cert_type */}
+                  </p>
                   <p className="text-sm text-emerald-700">
                     Certificate Number: {restaurantDetails.certNumber}
                   </p>
