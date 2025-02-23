@@ -1,38 +1,24 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
+const authRoutes = require('./routes/authRoutes');
+const restaurantRoutes = require('./routes/restaurantRoutes');
+const pool = require('./config/db'); // Import pool from config/db
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5001;
 
-// Update CORS configuration to allow PUT method
-// Update CORS configuration to include DELETE method
+// CORS configuration
 app.use(cors({
   origin: 'http://localhost:5173', // Allow requests from the frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Include DELETE in allowed methods
   credentials: true // Allow cookies or authentication headers
 }));
 
-// Update CORS configuration to include DELETE method
-app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Added DELETE to allowed methods
-  credentials: true
-}));
-
 app.use(express.json());
-
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
 
 // Root route
 app.get('/', (req, res) => {
@@ -281,10 +267,6 @@ app.post('/api/host/upload-image', upload.single('image'), (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
 // Fetch menu for a specific restaurant (using restaurant_id)
 app.get('/api/host/menu', async (req, res) => {
   const restaurantId = req.query.restaurant_id; // Get the restaurantId from query parameters
@@ -345,7 +327,6 @@ app.put('/api/host/menu', async (req, res) => {
 });
 
 // Add new menu item
-// Update the POST endpoint for adding menu items
 app.post('/api/host/menu', async (req, res) => {
   const { host_id, restaurant_id, name, description, price } = req.body;
   
@@ -390,6 +371,7 @@ app.post('/api/host/menu', async (req, res) => {
     });
   }
 });
+
 // Delete menu item endpoint
 app.delete('/api/host/menu', async (req, res) => {
   const { id, host_id } = req.query;
@@ -425,3 +407,7 @@ app.delete('/api/host/menu', async (req, res) => {
   }
 });
 
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
