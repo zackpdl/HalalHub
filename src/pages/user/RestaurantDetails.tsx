@@ -237,7 +237,7 @@ export default function RestaurantDetails() {
                         {new Date(review.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <Rating value={review.rating} readOnly />
+                    <Rating value={review.rating} readonly />
                     <p className="mt-2 text-gray-600">{review.comment}</p>
                   </div>
                 ))}
